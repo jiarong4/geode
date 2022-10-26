@@ -1171,4 +1171,30 @@ public class Gfsh extends JLineShell {
     }
     return output;
   }
+
+  /**
+   * Set the Gfshout value
+   *
+   * @param out gfsh out stream to be set
+   */
+  public void setGfshout(PrintStream out) {
+    if (out == null) {
+      throw new IllegalArgumentException(
+          "Gfsh out stream can not be set to null.");
+    }
+    gfshout = out;
+  }
+
+  /**
+   * Set the Gfsherr value
+   *
+   * @param err gfsh err stream to be set
+   */
+  public void setGfsherr(PrintStream err) {
+    if (err == null) {
+      throw new IllegalArgumentException(
+          "Gfsh err stream can not be set to null.");
+    }
+    gfsherr = err;
+  }
 }
