@@ -14,26 +14,11 @@
  */
 package org.apache.geode.internal.cache.backup;
 
-import java.io.IOException;
-import java.util.HashSet;
+public enum BackupFailedReason {
 
-import org.apache.geode.internal.cache.InternalCache;
-
-class FinishBackup {
-
-  private final InternalCache cache;
-
-  FinishBackup(InternalCache cache) {
-    this.cache = cache;
-  }
-
-  HashSet<DiskStoreBackupResult> run() throws IOException {
-    HashSet<DiskStoreBackupResult> persistentIds;
-    if (cache == null) {
-      persistentIds = new HashSet<>();
-    } else {
-      persistentIds = cache.getBackupService().doBackup();
-    }
-    return persistentIds;
-  }
+  NONE,
+  UNKNOWN,
+  NO_PERMISSION,
+  NO_SPACE_LEFT,
+  OTHER_DISK_REASON;
 }

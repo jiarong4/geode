@@ -522,12 +522,21 @@ public class CliStrings {
       "Directory to which backup files will be written.";
   public static final String BACKUP_DISK_STORE_MSG_BACKED_UP_DISK_STORES =
       "The following disk stores were backed up successfully";
+  public static final String BACKUP_DISK_STORE_MSG_BACKUP_FAILED_DISK_STORES =
+      "The backup of the following disk stores failed";
   public static final String BACKUP_DISK_STORE_MSG_OFFLINE_DISK_STORES =
       "The backup may be incomplete. The following disk stores are not online";
   public static final String BACKUP_DISK_STORE_MSG_HOST = "Host";
   public static final String BACKUP_DISK_STORE_MSG_DIRECTORY = "Directory";
   public static final String BACKUP_DISK_STORE_MSG_UUID = "UUID";
   public static final String BACKUP_DISK_STORE_MSG_MEMBER = "Member";
+  public static final String BACKUP_DISK_STORE_MSG_FAILED_REASON = "Failed Reason";
+  public static final String BACKUP_DISK_STORE_MSG_FAILED_REASON_NO_PERMISSION =
+      "Insufficient permissions";
+  public static final String BACKUP_DISK_STORE_MSG_FAILED_REASON_NO_SPACE = "No space left";
+  public static final String BACKUP_DISK_STORE_MSG_FAILED_REASON_OTHER_DISK_REASON =
+      "Other disk reasons";
+  public static final String BACKUP_DISK_STORE_MSG_FAILED_REASON_UNKNOWN = "Unknown reason";
   public static final String BACKUP_DISK_STORE_MSG_NO_DISKSTORES_BACKED_UP =
       "No disk store(s) were backed up.";
 

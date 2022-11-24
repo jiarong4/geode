@@ -27,7 +27,9 @@ import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.internal.cache.InternalCache;
+import org.apache.geode.internal.cache.backup.BackupFailedReason;
 import org.apache.geode.internal.cache.backup.BackupOperation;
+import org.apache.geode.internal.cache.backup.DiskStoreBackupResult;
 import org.apache.geode.management.BackupStatus;
 import org.apache.geode.management.DistributedSystemMXBean;
 import org.apache.geode.management.ManagementService;
@@ -40,7 +42,9 @@ import org.apache.geode.management.internal.security.ResourceOperation;
 import org.apache.geode.security.ResourcePermission;
 
 public class BackupDiskStoreCommand extends GfshCommand {
+
   public static final String BACKED_UP_DISKSTORES_SECTION = "backed-up-diskstores";
+  public static final String FAILED_BACKUP_DISKSTORES_SECTION = "failed-backup-diskstores";
   public static final String OFFLINE_DISKSTORES_SECTION = "offline-diskstores";
 
   /**
@@ -94,42 +98,24 @@ public class BackupDiskStoreCommand extends GfshCommand {
             includeDiskStoresString);
       }
 
-      Map<DistributedMember, Set<PersistentID>> backedupMemberDiskstoreMap =
+      Map<DistributedMember, Set<DiskStoreBackupResult>> backedupMemberDiskstoreMap =
           backupStatus.getBackedUpDiskStores();
 
-      Set<DistributedMember> backedupMembers = backedupMemberDiskstoreMap.keySet();
-
-      if (!backedupMembers.isEmpty()) {
+      if (backupResultExists(backedupMemberDiskstoreMap, true)) {
         TabularResultModel backedupDiskStoresTable = result.addTable(BACKED_UP_DISKSTORES_SECTION);
-        backedupDiskStoresTable.setHeader(CliStrings.BACKUP_DISK_STORE_MSG_BACKED_UP_DISK_STORES);
-
-        for (DistributedMember member : backedupMembers) {
-          Set<PersistentID> backedupDiskStores = backedupMemberDiskstoreMap.get(member);
-          boolean printMember = true;
-          String memberName = member.getName();
-
-          if (memberName == null || memberName.isEmpty()) {
-            memberName = member.getId();
-          }
-          for (PersistentID persistentId : backedupDiskStores) {
-            if (persistentId != null) {
-
-              String UUID = persistentId.getUUID().toString();
-              String hostName = persistentId.getHost().getHostName();
-              String directory = persistentId.getDirectory();
-
-              if (printMember) {
-                writeToBackupDiskStoreTable(backedupDiskStoresTable, memberName, UUID, hostName,
-                    directory);
-                printMember = false;
-              } else {
-                writeToBackupDiskStoreTable(backedupDiskStoresTable, "", UUID, hostName, directory);
-              }
-            }
-          }
-        }
+        backedupDiskStoresTable
+            .setHeader(CliStrings.BACKUP_DISK_STORE_MSG_BACKED_UP_DISK_STORES);
+        writeBackupDiskStoreResult(backedupDiskStoresTable, backedupMemberDiskstoreMap, true);
       } else {
         result.addInfo().addLine(CliStrings.BACKUP_DISK_STORE_MSG_NO_DISKSTORES_BACKED_UP);
+      }
+
+      if (backupResultExists(backedupMemberDiskstoreMap, false)) {
+        TabularResultModel backedupDiskStoresTable =
+            result.addTable(FAILED_BACKUP_DISKSTORES_SECTION);
+        backedupDiskStoresTable
+            .setHeader(CliStrings.BACKUP_DISK_STORE_MSG_BACKUP_FAILED_DISK_STORES);
+        writeBackupDiskStoreResult(backedupDiskStoresTable, backedupMemberDiskstoreMap, false);
       }
 
       Set<PersistentID> offlineDiskStores = backupStatus.getOfflineDiskStores();
@@ -147,19 +133,56 @@ public class BackupDiskStoreCommand extends GfshCommand {
               offlineDiskStore.getDirectory());
         }
       }
-
     } catch (Exception e) {
       return ResultModel.createError(e.getMessage());
     }
     return result;
   }
 
+  private void writeBackupDiskStoreResult(TabularResultModel table,
+      Map<DistributedMember, Set<DiskStoreBackupResult>> diskStoreMap, boolean success) {
+    Set<DistributedMember> backedupMembers = diskStoreMap.keySet();
+    for (DistributedMember member : backedupMembers) {
+      Set<DiskStoreBackupResult> backedupDiskStores = diskStoreMap.get(member);
+      boolean printMember = true;
+      String memberName = member.getName();
+
+      if (memberName == null || memberName.isEmpty()) {
+        memberName = member.getId();
+      }
+      for (DiskStoreBackupResult diskStore : backedupDiskStores) {
+        if (success && diskStore.getFailedReason() != BackupFailedReason.NONE) {
+          continue;
+        }
+        if (!success && diskStore.getFailedReason() == BackupFailedReason.NONE) {
+          continue;
+        }
+        String UUID = diskStore.getPersistentID().getUUID().toString();
+        String hostName = diskStore.getPersistentID().getHost().getHostName();
+        String directory = diskStore.getPersistentID().getDirectory();
+        BackupFailedReason failedReason = diskStore.getFailedReason();
+
+        if (printMember) {
+          writeToBackupDiskStoreTable(table, memberName, UUID, hostName,
+              directory, failedReason);
+          printMember = false;
+        } else {
+          writeToBackupDiskStoreTable(table, "", UUID, hostName, directory, failedReason);
+        }
+      }
+    }
+  }
+
   private void writeToBackupDiskStoreTable(TabularResultModel table, String memberId, String UUID,
-      String host, String directory) {
+      String host, String directory, BackupFailedReason failedReason) {
     table.accumulate(CliStrings.BACKUP_DISK_STORE_MSG_MEMBER, memberId);
     table.accumulate(CliStrings.BACKUP_DISK_STORE_MSG_UUID, UUID);
     table.accumulate(CliStrings.BACKUP_DISK_STORE_MSG_DIRECTORY, directory);
     table.accumulate(CliStrings.BACKUP_DISK_STORE_MSG_HOST, host);
+    if (BackupFailedReason.NONE != failedReason) {
+      table.accumulate(CliStrings.BACKUP_DISK_STORE_MSG_FAILED_REASON,
+          getFailedReasonMessage(failedReason));
+    }
   }
 
   private boolean diskStoreExists(String diskStoreName) {
@@ -169,5 +192,37 @@ public class BackupDiskStoreCommand extends GfshCommand {
     return Arrays.stream(dsMXBean.listMembers()).anyMatch(
         member -> DiskStoreCommandsUtils.diskStoreBeanAndMemberBeanDiskStoreExists(dsMXBean, member,
             diskStoreName));
+  }
+
+  private boolean backupResultExists(
+      Map<DistributedMember, Set<DiskStoreBackupResult>> diskStoreMap,
+      boolean success) {
+    if (diskStoreMap.isEmpty()) {
+      return false;
+    }
+    for (Set<DiskStoreBackupResult> backedupDiskStores : diskStoreMap.values()) {
+      for (DiskStoreBackupResult diskStore : backedupDiskStores) {
+        if (success && diskStore.getFailedReason() == BackupFailedReason.NONE) {
+          return true;
+        }
+        if (!success && diskStore.getFailedReason() != BackupFailedReason.NONE) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private String getFailedReasonMessage(BackupFailedReason failedReason) {
+    switch (failedReason) {
+      case NO_PERMISSION:
+        return CliStrings.BACKUP_DISK_STORE_MSG_FAILED_REASON_NO_PERMISSION;
+      case NO_SPACE_LEFT:
+        return CliStrings.BACKUP_DISK_STORE_MSG_FAILED_REASON_NO_SPACE;
+      case OTHER_DISK_REASON:
+        return CliStrings.BACKUP_DISK_STORE_MSG_FAILED_REASON_OTHER_DISK_REASON;
+      default:
+        return CliStrings.BACKUP_DISK_STORE_MSG_FAILED_REASON_UNKNOWN;
+    }
   }
 }

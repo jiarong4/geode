@@ -20,6 +20,7 @@ import java.util.Set;
 import org.apache.geode.admin.BackupStatus;
 import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.DistributedMember;
+import org.apache.geode.internal.cache.backup.DiskStoreBackupResult;
 
 /**
  * @deprecated as of 7.0 use the <code><a href=
@@ -32,7 +33,7 @@ public class BackupStatusImpl implements BackupStatus {
 
   private final org.apache.geode.management.BackupStatus status;
 
-  public BackupStatusImpl(Map<DistributedMember, Set<PersistentID>> backedUpDiskStores,
+  public BackupStatusImpl(Map<DistributedMember, Set<DiskStoreBackupResult>> backedUpDiskStores,
       Set<PersistentID> offlineDiskStores) {
     status = new org.apache.geode.management.internal.BackupStatusImpl(backedUpDiskStores,
         offlineDiskStores);
@@ -43,7 +44,7 @@ public class BackupStatusImpl implements BackupStatus {
   }
 
   @Override
-  public Map<DistributedMember, Set<PersistentID>> getBackedUpDiskStores() {
+  public Map<DistributedMember, Set<DiskStoreBackupResult>> getBackedUpDiskStores() {
     return status.getBackedUpDiskStores();
   }
 

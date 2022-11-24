@@ -17,7 +17,6 @@ package org.apache.geode.internal.cache.backup;
 import java.util.Collections;
 import java.util.Set;
 
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.distributed.internal.DistributionMessage;
 import org.apache.geode.distributed.internal.ReplyProcessor21;
@@ -46,7 +45,8 @@ class AbortBackupStep extends BackupStep {
    * (such as the sender).
    */
   @Override
-  public void addToResults(InternalDistributedMember member, Set<PersistentID> persistentIds) {
+  public void addToResults(InternalDistributedMember member,
+      Set<DiskStoreBackupResult> persistentIds) {
     if (persistentIds != null) {
       getResults().put(member, persistentIds);
     }

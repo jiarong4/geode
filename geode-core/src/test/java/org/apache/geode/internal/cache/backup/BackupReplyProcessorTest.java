@@ -28,7 +28,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.apache.geode.CancelCriterion;
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.distributed.internal.DistributionMessage;
 import org.apache.geode.distributed.internal.InternalDistributedSystem;
@@ -44,7 +43,7 @@ public class BackupReplyProcessorTest {
   private InternalDistributedMember sender;
 
   private Set<InternalDistributedMember> recipients;
-  private Set<PersistentID> persistentIds;
+  private Set<DiskStoreBackupResult> persistentIds;
 
   private BackupResponse backupResponse;
   private DistributionMessage nonBackupResponse;

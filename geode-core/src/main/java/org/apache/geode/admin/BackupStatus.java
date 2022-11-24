@@ -19,6 +19,7 @@ import java.util.Set;
 
 import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.DistributedMember;
+import org.apache.geode.internal.cache.backup.DiskStoreBackupResult;
 
 /**
  * The status of a backup operation, returned by
@@ -37,7 +38,7 @@ public interface BackupStatus {
    *
    * @return a map of disk stores that were successfully backed up
    */
-  Map<DistributedMember, Set<PersistentID>> getBackedUpDiskStores();
+  Map<DistributedMember, Set<DiskStoreBackupResult>> getBackedUpDiskStores();
 
   /**
    * Returns the set of disk stores that were known to be offline at the time of the backup. These

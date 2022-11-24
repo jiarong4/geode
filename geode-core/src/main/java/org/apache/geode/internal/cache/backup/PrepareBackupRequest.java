@@ -24,7 +24,6 @@ import java.util.Set;
 import org.apache.logging.log4j.Logger;
 
 import org.apache.geode.DataSerializer;
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.internal.admin.remote.AdminFailureResponse;
@@ -60,7 +59,7 @@ public class PrepareBackupRequest extends CliLegacyMessage {
 
   @Override
   protected AdminResponse createResponse(DistributionManager dm) {
-    HashSet<PersistentID> persistentIds;
+    HashSet<DiskStoreBackupResult> persistentIds;
     try {
       persistentIds = prepareBackupFactory
           .createPrepareBackup(dm.getDistributionManagerId(), dm.getCache(), properties).run();

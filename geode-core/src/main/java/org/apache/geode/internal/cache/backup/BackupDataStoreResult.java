@@ -17,32 +17,31 @@ package org.apache.geode.internal.cache.backup;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.DistributedMember;
 
 class BackupDataStoreResult {
 
-  private final Map<DistributedMember, Set<PersistentID>> existingDataStores;
-  private final Map<DistributedMember, Set<PersistentID>> successfulMembers;
+  private final Map<DistributedMember, Set<DiskStoreBackupResult>> existingDataStores;
+  private final Map<DistributedMember, Set<DiskStoreBackupResult>> backedUpMembers;
 
-  BackupDataStoreResult(Map<DistributedMember, Set<PersistentID>> existingDataStores,
-      Map<DistributedMember, Set<PersistentID>> successfulMembers) {
+  BackupDataStoreResult(Map<DistributedMember, Set<DiskStoreBackupResult>> existingDataStores,
+      Map<DistributedMember, Set<DiskStoreBackupResult>> backedUpMembers) {
     this.existingDataStores = existingDataStores;
-    this.successfulMembers = successfulMembers;
+    this.backedUpMembers = backedUpMembers;
   }
 
-  Map<DistributedMember, Set<PersistentID>> getExistingDataStores() {
+  Map<DistributedMember, Set<DiskStoreBackupResult>> getExistingDataStores() {
     return existingDataStores;
   }
 
-  Map<DistributedMember, Set<PersistentID>> getSuccessfulMembers() {
-    return successfulMembers;
+  Map<DistributedMember, Set<DiskStoreBackupResult>> getBackedUpMembers() {
+    return backedUpMembers;
   }
 
   @Override
   public String toString() {
     return getClass().getSimpleName() + "["
         + "existingDataStores=" + existingDataStores
-        + "; successfulMembers=" + successfulMembers + "]";
+        + "; backedUpMembers=" + backedUpMembers + "]";
   }
 }

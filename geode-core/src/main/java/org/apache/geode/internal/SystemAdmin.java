@@ -85,6 +85,7 @@ import org.apache.geode.distributed.internal.tcpserver.TcpSocketFactory;
 import org.apache.geode.internal.admin.remote.TailLogResponse;
 import org.apache.geode.internal.cache.DiskStoreImpl;
 import org.apache.geode.internal.cache.backup.BackupOperation;
+import org.apache.geode.internal.cache.backup.DiskStoreBackupResult;
 import org.apache.geode.internal.logging.DateFormatter;
 import org.apache.geode.internal.logging.MergeLogFiles;
 import org.apache.geode.internal.net.SocketCreator;
@@ -614,8 +615,8 @@ public class SystemAdmin {
     boolean incomplete = !status.getOfflineDiskStores().isEmpty();
 
     System.out.println("The following disk stores were backed up:");
-    for (Set<PersistentID> memberStores : status.getBackedUpDiskStores().values()) {
-      for (PersistentID store : memberStores) {
+    for (Set<DiskStoreBackupResult> memberStores : status.getBackedUpDiskStores().values()) {
+      for (DiskStoreBackupResult store : memberStores) {
         System.out.println("\t" + store);
       }
     }

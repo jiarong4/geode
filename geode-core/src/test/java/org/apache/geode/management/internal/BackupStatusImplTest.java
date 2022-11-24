@@ -27,11 +27,12 @@ import org.junit.Test;
 
 import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.DistributedMember;
+import org.apache.geode.internal.cache.backup.DiskStoreBackupResult;
 import org.apache.geode.management.BackupStatus;
 
 public class BackupStatusImplTest {
 
-  private Map<DistributedMember, Set<PersistentID>> backedUpDiskStores;
+  private Map<DistributedMember, Set<DiskStoreBackupResult>> backedUpDiskStores;
   private Set<PersistentID> offlineDiskStores;
 
   @Before

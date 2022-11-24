@@ -33,7 +33,6 @@ import org.mockito.InOrder;
 import org.mockito.stubbing.Answer;
 
 import org.apache.geode.cache.CacheClosedException;
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.distributed.internal.ReplyException;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
@@ -171,17 +170,18 @@ public class AbortBackupStepTest {
     return new MemberWithPersistentIds(member, createPersistentIds());
   }
 
-  private HashSet<PersistentID> createPersistentIds() {
-    HashSet<PersistentID> persistentIds = new HashSet<>();
-    persistentIds.add(mock(PersistentID.class));
+  private HashSet<DiskStoreBackupResult> createPersistentIds() {
+    HashSet<DiskStoreBackupResult> persistentIds = new HashSet<>();
+    persistentIds.add(mock(DiskStoreBackupResult.class));
     return persistentIds;
   }
 
   private static class MemberWithPersistentIds {
     InternalDistributedMember member;
-    Set<PersistentID> persistentIds;
+    Set<DiskStoreBackupResult> persistentIds;
 
-    MemberWithPersistentIds(InternalDistributedMember member, HashSet<PersistentID> persistentIds) {
+    MemberWithPersistentIds(InternalDistributedMember member,
+        HashSet<DiskStoreBackupResult> persistentIds) {
       this.member = member;
       this.persistentIds = persistentIds;
     }

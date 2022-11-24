@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.Logger;
 
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.distributed.internal.MembershipListener;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
@@ -45,19 +44,21 @@ public class BackupService {
   private final InternalCache cache;
   private final AtomicReference<BackupTask> currentTask = new AtomicReference<>();
 
-  private transient Future<HashSet<PersistentID>> taskFuture;
+  private transient Future<HashSet<DiskStoreBackupResult>> taskFuture;
 
   public BackupService(InternalCache cache) {
     this.cache = cache;
     executor = createExecutor();
   }
 
-  public HashSet<PersistentID> prepareBackup(InternalDistributedMember sender, BackupWriter writer)
+  public HashSet<DiskStoreBackupResult> prepareBackup(InternalDistributedMember sender,
+      BackupWriter writer)
       throws IOException, InterruptedException {
     return prepareBackup(sender, writer, null);
   }
 
-  public HashSet<PersistentID> prepareBackup(InternalDistributedMember sender, BackupWriter writer,
+  public HashSet<DiskStoreBackupResult> prepareBackup(InternalDistributedMember sender,
+      BackupWriter writer,
       String includeDiskStores)
       throws IOException, InterruptedException {
     validateRequestingSender(sender);
@@ -69,14 +70,14 @@ public class BackupService {
     return backupTask.getPreparedDiskStores();
   }
 
-  public HashSet<PersistentID> doBackup() throws IOException {
+  public HashSet<DiskStoreBackupResult> doBackup() throws IOException {
     BackupTask task = currentTask.get();
     if (task == null) {
       throw new IOException("No backup currently in progress");
     }
     task.notifyOtherMembersReady();
 
-    HashSet<PersistentID> result;
+    HashSet<DiskStoreBackupResult> result;
     try {
       result = taskFuture.get();
     } catch (InterruptedException | ExecutionException e) {

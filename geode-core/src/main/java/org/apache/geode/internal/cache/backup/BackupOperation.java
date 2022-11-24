@@ -93,7 +93,7 @@ public class BackupOperation {
   }
 
   private BackupStatus performBackupUnderLock(Properties properties) {
-    Set<PersistentID> missingMembers =
+    Set<PersistentID> offlineMembers =
         missingPersistentMembersProvider.getMissingPersistentMembers(dm);
     Set<InternalDistributedMember> recipients = dm.getOtherDistributionManagerIds();
 
@@ -103,15 +103,21 @@ public class BackupOperation {
     // still creating/recovering regions, and at FinishBackupRequest.send, the
     // regions at the members are ready. Logically, since the members in successfulMembers
     // should override the previous missingMembers
-    for (Set<PersistentID> onlineMembersIds : result.getSuccessfulMembers().values()) {
-      missingMembers.removeAll(onlineMembersIds);
+    for (Set<DiskStoreBackupResult> onlineMembersIds : result.getExistingDataStores().values()) {
+      for (DiskStoreBackupResult onlineResult : onlineMembersIds) {
+        offlineMembers.remove(onlineResult.getPersistentID());
+      }
     }
-
-    result.getExistingDataStores().keySet().removeAll(result.getSuccessfulMembers().keySet());
-    for (Set<PersistentID> lostMembersIds : result.getExistingDataStores().values()) {
-      missingMembers.addAll(lostMembersIds);
-    }
-    return new BackupStatusImpl(result.getSuccessfulMembers(), missingMembers);
+    Map<DistributedMember, Set<DiskStoreBackupResult>> backupFailedDueToUnknown =
+        result.getExistingDataStores();
+    backupFailedDueToUnknown.keySet().removeAll(result.getBackedUpMembers().keySet());
+    backupFailedDueToUnknown.values().forEach(diskStoreSet -> {
+      diskStoreSet.forEach(diskStore -> {
+        diskStore.setFailedReason(BackupFailedReason.UNKNOWN);
+      });
+    });
+    result.getBackedUpMembers().putAll(backupFailedDueToUnknown);
+    return new BackupStatusImpl(result.getBackedUpMembers(), offlineMembers);
   }
 
   private BackupDataStoreResult performBackupSteps(InternalDistributedMember member,
@@ -120,8 +126,8 @@ public class BackupOperation {
         .send();
 
     boolean abort = true;
-    Map<DistributedMember, Set<PersistentID>> successfulMembers;
-    Map<DistributedMember, Set<PersistentID>> existingDataStores;
+    Map<DistributedMember, Set<DiskStoreBackupResult>> onlineMembers;
+    Map<DistributedMember, Set<DiskStoreBackupResult>> existingDataStores;
     try {
       PrepareBackupStep prepareBackupStep =
           prepareBackupFactory.createPrepareBackupStep(dm, member, cache, recipients,
@@ -132,14 +138,14 @@ public class BackupOperation {
       if (abort) {
         abortBackupFactory.createAbortBackupStep(dm, member, cache, recipients, abortBackupFactory)
             .send();
-        successfulMembers = Collections.emptyMap();
+        onlineMembers = Collections.emptyMap();
       } else {
-        successfulMembers =
+        onlineMembers =
             finishBackupFactory.createFinishBackupStep(dm, member, cache, recipients,
                 finishBackupFactory).send();
       }
     }
-    return new BackupDataStoreResult(existingDataStores, successfulMembers);
+    return new BackupDataStoreResult(existingDataStores, onlineMembers);
   }
 
   interface MissingPersistentMembersProvider {

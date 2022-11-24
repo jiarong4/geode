@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.DistributedMember;
+import org.apache.geode.internal.cache.backup.DiskStoreBackupResult;
 import org.apache.geode.management.DiskBackupStatus;
 
 public class DiskBackupStatusImpl implements DiskBackupStatus {
@@ -66,13 +67,14 @@ public class DiskBackupStatusImpl implements DiskBackupStatus {
    * backed up.
    */
   public void generateBackedUpDiskStores(
-      Map<DistributedMember, Set<PersistentID>> backedUpDiskStores) {
+      Map<DistributedMember, Set<DiskStoreBackupResult>> backedUpDiskStores) {
     Map<String, String[]> diskStores = new HashMap<>();
     backedUpDiskStores.entrySet().forEach(entry -> {
       DistributedMember member = entry.getKey();
-      Set<PersistentID> ids = entry.getValue();
+      Set<DiskStoreBackupResult> ids = entry.getValue();
       String[] setOfDiskStr = new String[ids.size()];
-      entry.getValue().stream().map(PersistentID::getDirectory).collect(Collectors.toList())
+      entry.getValue().stream().map(diskStore -> diskStore.getPersistentID().getDirectory())
+          .collect(Collectors.toList())
           .toArray(setOfDiskStr);
       diskStores.put(member.getId(), setOfDiskStr);
     });

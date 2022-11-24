@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.DistributedMember;
+import org.apache.geode.internal.cache.backup.DiskStoreBackupResult;
 import org.apache.geode.management.internal.DiskBackupStatusImpl;
 
 public class DiskBackupStatusTest {
@@ -53,14 +54,14 @@ public class DiskBackupStatusTest {
 
   @Test
   public void generatesCorrectBackupUpDiskStores() {
-    Map<DistributedMember, Set<PersistentID>> backedUpDiskStores = new HashMap<>();
+    Map<DistributedMember, Set<DiskStoreBackupResult>> backedUpDiskStores = new HashMap<>();
 
     DistributedMember member1 = generateTestMember("member1");
-    Set<PersistentID> idSet1 = generateTestIDs(1);
+    Set<DiskStoreBackupResult> idSet1 = generateTestResults(1);
     backedUpDiskStores.put(member1, idSet1);
 
     DistributedMember member2 = generateTestMember("member2");
-    Set<PersistentID> idSet2 = generateTestIDs(2);
+    Set<DiskStoreBackupResult> idSet2 = generateTestResults(2);
     backedUpDiskStores.put(member2, idSet2);
 
     DiskBackupStatusImpl status = new DiskBackupStatusImpl();
@@ -98,5 +99,17 @@ public class DiskBackupStatusTest {
       ids.add(id);
     }
     return ids;
+  }
+
+  private Set<DiskStoreBackupResult> generateTestResults(int idsToGenerate) {
+    Set<DiskStoreBackupResult> diskStores = new HashSet<>();
+    for (int i = 0; i < idsToGenerate; i++) {
+      DiskStoreBackupResult diskStore = mock(DiskStoreBackupResult.class);
+      PersistentID id = mock(PersistentID.class);
+      when(diskStore.getPersistentID()).thenReturn(id);
+      when(id.getDirectory()).thenReturn("DirectoryForId" + i);
+      diskStores.add(diskStore);
+    }
+    return diskStores;
   }
 }

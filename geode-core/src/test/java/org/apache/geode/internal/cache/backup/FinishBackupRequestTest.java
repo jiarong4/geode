@@ -28,7 +28,6 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.internal.admin.remote.AdminFailureResponse;
@@ -46,7 +45,7 @@ public class FinishBackupRequestTest {
   private FinishBackupFactory finishBackupFactory;
   private InternalDistributedMember sender;
   private Set<InternalDistributedMember> recipients;
-  private HashSet<PersistentID> persistentIds;
+  private HashSet<DiskStoreBackupResult> persistentIds;
   private FinishBackup finishBackup;
 
   @Before

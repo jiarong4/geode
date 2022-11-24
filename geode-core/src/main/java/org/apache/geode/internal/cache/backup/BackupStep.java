@@ -22,7 +22,6 @@ import java.util.Set;
 import org.apache.logging.log4j.Logger;
 
 import org.apache.geode.CancelException;
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.distributed.internal.DistributionMessage;
@@ -35,7 +34,7 @@ abstract class BackupStep implements BackupResultCollector {
   private static final Logger logger = LogService.getLogger();
 
   private final DistributionManager dm;
-  private final Map<DistributedMember, Set<PersistentID>> results =
+  private final Map<DistributedMember, Set<DiskStoreBackupResult>> results =
       Collections.synchronizedMap(new HashMap<>());
 
   BackupStep(DistributionManager dm) {
@@ -49,13 +48,14 @@ abstract class BackupStep implements BackupResultCollector {
   abstract void processLocally();
 
   @Override
-  public void addToResults(InternalDistributedMember member, Set<PersistentID> persistentIds) {
+  public void addToResults(InternalDistributedMember member,
+      Set<DiskStoreBackupResult> persistentIds) {
     if (persistentIds != null && !persistentIds.isEmpty()) {
       results.put(member, persistentIds);
     }
   }
 
-  Map<DistributedMember, Set<PersistentID>> send() {
+  Map<DistributedMember, Set<DiskStoreBackupResult>> send() {
     ReplyProcessor21 replyProcessor = createReplyProcessor();
 
     dm.putOutgoing(createDistributionMessage(replyProcessor));
@@ -75,7 +75,7 @@ abstract class BackupStep implements BackupResultCollector {
     return getResults();
   }
 
-  Map<DistributedMember, Set<PersistentID>> getResults() {
+  Map<DistributedMember, Set<DiskStoreBackupResult>> getResults() {
     return results;
   }
 

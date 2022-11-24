@@ -331,15 +331,17 @@ public class IncrementalBackupDistributedTest implements Serializable {
   }
 
   private void validateBackupStatus(final BackupStatus backupStatus) {
-    Map<DistributedMember, Set<PersistentID>> backupMap = backupStatus.getBackedUpDiskStores();
+    Map<DistributedMember, Set<DiskStoreBackupResult>> backupMap =
+        backupStatus.getBackedUpDiskStores();
     assertThat(backupMap).isNotEmpty();
 
     for (DistributedMember member : backupMap.keySet()) {
       assertThat(backupMap.get(member)).isNotEmpty();
-      for (PersistentID id : backupMap.get(member)) {
-        assertThat(id.getHost()).isNotNull();
-        assertThat(id.getUUID()).isNotNull();
-        assertThat(id.getDirectory()).isNotNull();
+      for (DiskStoreBackupResult diskStore : backupMap.get(member)) {
+        assertThat(diskStore.getPersistentID()).isNotNull();
+        assertThat(diskStore.getPersistentID().getHost()).isNotNull();
+        assertThat(diskStore.getPersistentID().getUUID()).isNotNull();
+        assertThat(diskStore.getPersistentID().getDirectory()).isNotNull();
       }
     }
   }

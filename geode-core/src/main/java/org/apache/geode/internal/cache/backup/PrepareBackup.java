@@ -17,7 +17,6 @@ package org.apache.geode.internal.cache.backup;
 import java.io.IOException;
 import java.util.HashSet;
 
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.internal.cache.InternalCache;
 
@@ -36,8 +35,8 @@ class PrepareBackup {
     this.includeDiskStores = includeDiskStores;
   }
 
-  HashSet<PersistentID> run() throws IOException, InterruptedException {
-    HashSet<PersistentID> persistentIds;
+  HashSet<DiskStoreBackupResult> run() throws IOException, InterruptedException {
+    HashSet<DiskStoreBackupResult> persistentIds;
     if (cache == null) {
       persistentIds = new HashSet<>();
     } else {

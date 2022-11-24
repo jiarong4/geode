@@ -16,10 +16,9 @@ package org.apache.geode.internal.cache.backup;
 
 import java.util.Set;
 
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 
 interface BackupResultCollector {
 
-  void addToResults(InternalDistributedMember member, Set<PersistentID> persistentIds);
+  void addToResults(InternalDistributedMember member, Set<DiskStoreBackupResult> persistentIds);
 }

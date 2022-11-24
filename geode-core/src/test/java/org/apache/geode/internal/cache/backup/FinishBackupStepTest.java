@@ -34,7 +34,6 @@ import org.mockito.InOrder;
 import org.mockito.stubbing.Answer;
 
 import org.apache.geode.cache.CacheClosedException;
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.distributed.internal.ReplyException;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
@@ -97,8 +96,8 @@ public class FinishBackupStepTest {
 
   @Test
   public void sendReturnsResultsForRemoteRecipient() throws Exception {
-    HashSet<PersistentID> persistentIdsForMember1 = new HashSet<>();
-    persistentIdsForMember1.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForMember1 = new HashSet<>();
+    persistentIdsForMember1.add(mock(DiskStoreBackupResult.class));
     doAnswer(invokeAddToResults(new MemberWithPersistentIds(member1, persistentIdsForMember1)))
         .when(finishBackupReplyProcessor).waitForReplies();
 
@@ -108,8 +107,8 @@ public class FinishBackupStepTest {
 
   @Test
   public void sendReturnsResultsForLocalMember() throws Exception {
-    HashSet<PersistentID> persistentIdsForSender = new HashSet<>();
-    persistentIdsForSender.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForSender = new HashSet<>();
+    persistentIdsForSender.add(mock(DiskStoreBackupResult.class));
     when(finishBackup.run()).thenReturn(persistentIdsForSender);
 
     assertThat(finishBackupStep.send()).containsOnlyKeys(sender)
@@ -118,11 +117,11 @@ public class FinishBackupStepTest {
 
   @Test
   public void sendReturnsResultsForAllMembers() throws Exception {
-    HashSet<PersistentID> persistentIdsForMember1 = new HashSet<>();
-    persistentIdsForMember1.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForMember1 = new HashSet<>();
+    persistentIdsForMember1.add(mock(DiskStoreBackupResult.class));
 
-    HashSet<PersistentID> persistentIdsForMember2 = new HashSet<>();
-    persistentIdsForMember2.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForMember2 = new HashSet<>();
+    persistentIdsForMember2.add(mock(DiskStoreBackupResult.class));
 
     MemberWithPersistentIds[] ids = new MemberWithPersistentIds[] {
         new MemberWithPersistentIds(member1, persistentIdsForMember1),
@@ -130,8 +129,8 @@ public class FinishBackupStepTest {
 
     doAnswer(invokeAddToResults(ids)).when(finishBackupReplyProcessor).waitForReplies();
 
-    HashSet<PersistentID> persistentIdsForSender = new HashSet<>();
-    persistentIdsForSender.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForSender = new HashSet<>();
+    persistentIdsForSender.add(mock(DiskStoreBackupResult.class));
     when(finishBackup.run()).thenReturn(persistentIdsForSender);
 
     assertThat(finishBackupStep.send()).containsOnlyKeys(member1, member2, sender)
@@ -157,8 +156,8 @@ public class FinishBackupStepTest {
 
   @Test
   public void addToResultsShouldShowUpInGetResults() throws Exception {
-    HashSet<PersistentID> persistentIdsForMember1 = new HashSet<>();
-    persistentIdsForMember1.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForMember1 = new HashSet<>();
+    persistentIdsForMember1.add(mock(DiskStoreBackupResult.class));
     finishBackupStep.addToResults(member1, persistentIdsForMember1);
     assertThat(finishBackupStep.getResults()).containsOnlyKeys(member1)
         .containsValue(persistentIdsForMember1);
@@ -226,9 +225,10 @@ public class FinishBackupStepTest {
 
   private static class MemberWithPersistentIds {
     InternalDistributedMember member;
-    HashSet<PersistentID> persistentIds;
+    HashSet<DiskStoreBackupResult> persistentIds;
 
-    MemberWithPersistentIds(InternalDistributedMember member, HashSet<PersistentID> persistentIds) {
+    MemberWithPersistentIds(InternalDistributedMember member,
+        HashSet<DiskStoreBackupResult> persistentIds) {
       this.member = member;
       this.persistentIds = persistentIds;
     }

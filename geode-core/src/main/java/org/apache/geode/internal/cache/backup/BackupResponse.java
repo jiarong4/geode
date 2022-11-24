@@ -24,8 +24,11 @@ import org.apache.geode.DataSerializer;
 import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.internal.admin.remote.AdminResponse;
+import org.apache.geode.internal.cache.persistence.PersistentMemberPattern;
 import org.apache.geode.internal.serialization.DeserializationContext;
+import org.apache.geode.internal.serialization.KnownVersion;
 import org.apache.geode.internal.serialization.SerializationContext;
+import org.apache.geode.internal.serialization.StaticSerialization;
 
 /**
  * The response to a {@link PrepareBackupRequest}, {@link AbortBackupRequest}, or
@@ -33,18 +36,18 @@ import org.apache.geode.internal.serialization.SerializationContext;
  */
 public class BackupResponse extends AdminResponse {
 
-  private HashSet<PersistentID> persistentIds;
+  private HashSet<DiskStoreBackupResult> persistentIds;
 
   public BackupResponse() {
     super();
   }
 
-  BackupResponse(InternalDistributedMember sender, HashSet<PersistentID> persistentIds) {
+  BackupResponse(InternalDistributedMember sender, HashSet<DiskStoreBackupResult> persistentIds) {
     setRecipient(sender);
     this.persistentIds = persistentIds;
   }
 
-  Set<PersistentID> getPersistentIds() {
+  Set<DiskStoreBackupResult> getPersistentIds() {
     return persistentIds;
   }
 
@@ -52,14 +55,39 @@ public class BackupResponse extends AdminResponse {
   public void fromData(DataInput in,
       DeserializationContext context) throws IOException, ClassNotFoundException {
     super.fromData(in, context);
-    persistentIds = DataSerializer.readHashSet(in);
+    if (StaticSerialization.getVersionForDataStream(in).isOlderThan(KnownVersion.GEODE_1_15_0)) {
+      persistentIds = new HashSet<>();
+      HashSet<PersistentID> legacyResult = DataSerializer.readHashSet(in);
+      if (legacyResult != null) {
+        for (PersistentID persistentID : legacyResult) {
+          persistentIds
+              .add(new DiskStoreBackupResult(persistentID, BackupFailedReason.NONE));
+        }
+      }
+    } else {
+      persistentIds = DataSerializer.readHashSet(in);
+    }
   }
 
   @Override
   public void toData(DataOutput out,
       SerializationContext context) throws IOException {
     super.toData(out, context);
-    DataSerializer.writeHashSet(persistentIds, out);
+    if (StaticSerialization.getVersionForDataStream(out).isOlderThan(KnownVersion.GEODE_1_15_0)) {
+      HashSet<PersistentID> legacyData = new HashSet<>();
+      if (persistentIds != null) {
+        for (DiskStoreBackupResult diskStore : persistentIds) {
+          if (BackupFailedReason.NONE == diskStore.getFailedReason()) {
+            legacyData.add(new PersistentMemberPattern(diskStore.getPersistentID().getHost(),
+                diskStore.getPersistentID().getDirectory(), diskStore.getPersistentID().getUUID(),
+                0));
+          }
+        }
+      }
+      DataSerializer.writeHashSet(legacyData, out);
+    } else {
+      DataSerializer.writeHashSet(persistentIds, out);
+    }
   }
 
   @Override

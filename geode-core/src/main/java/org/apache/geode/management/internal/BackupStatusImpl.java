@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.DistributedMember;
+import org.apache.geode.internal.cache.backup.DiskStoreBackupResult;
 import org.apache.geode.management.BackupStatus;
 
 /**
@@ -28,10 +29,10 @@ import org.apache.geode.management.BackupStatus;
 public class BackupStatusImpl implements BackupStatus, Serializable {
   private static final long serialVersionUID = 3704172840296221840L;
 
-  private final Map<DistributedMember, Set<PersistentID>> backedUpDiskStores;
+  private final Map<DistributedMember, Set<DiskStoreBackupResult>> backedUpDiskStores;
   private final Set<PersistentID> offlineDiskStores;
 
-  public BackupStatusImpl(Map<DistributedMember, Set<PersistentID>> backedUpDiskStores,
+  public BackupStatusImpl(Map<DistributedMember, Set<DiskStoreBackupResult>> backedUpDiskStores,
       Set<PersistentID> offlineDiskStores) {
     if (backedUpDiskStores == null) {
       throw new IllegalArgumentException("backedUpDiskStores must not be null");
@@ -44,7 +45,7 @@ public class BackupStatusImpl implements BackupStatus, Serializable {
   }
 
   @Override
-  public Map<DistributedMember, Set<PersistentID>> getBackedUpDiskStores() {
+  public Map<DistributedMember, Set<DiskStoreBackupResult>> getBackedUpDiskStores() {
     return backedUpDiskStores;
   }
 

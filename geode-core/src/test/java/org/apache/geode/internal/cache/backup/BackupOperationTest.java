@@ -23,13 +23,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import org.apache.geode.cache.persistence.PersistentID;
+import org.apache.geode.distributed.DistributedMember;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.cache.backup.BackupOperation.MissingPersistentMembersProvider;
+import org.apache.geode.internal.cache.persistence.PersistentMemberPattern;
 import org.apache.geode.management.BackupStatus;
 import org.apache.geode.management.ManagementException;
 
@@ -83,6 +91,68 @@ public class BackupOperationTest {
   }
 
   @Test
+  public void testBackupFailed() {
+    FinishBackupStep finishBackupStep = mock(FinishBackupStep.class);
+    when(finishBackupFactory.createFinishBackupStep(any(), any(), any(), any(), any()))
+        .thenReturn(finishBackupStep);
+
+    when(finishBackupStep.send()).thenReturn(generateBackupResult(BackupFailedReason.NONE));
+    BackupStatus backupStatus = backupOperation.backupAllMembers(targetDirPath, baselineDirPath);
+    assertThat(backupStatus.getOfflineDiskStores()).hasSize(0);
+
+    when(finishBackupStep.send())
+        .thenReturn(generateBackupResult(BackupFailedReason.NO_PERMISSION));
+    backupStatus = backupOperation.backupAllMembers(targetDirPath, baselineDirPath);
+    assertThat(backupStatus.getBackedUpDiskStores()).hasSize(1);
+    assertThat(backupStatus.getBackedUpDiskStores().values().iterator().next().iterator().next()
+        .getFailedReason())
+            .isEqualTo(BackupFailedReason.NO_PERMISSION);
+
+    when(finishBackupStep.send())
+        .thenReturn(generateBackupResult(BackupFailedReason.NO_SPACE_LEFT));
+    backupStatus = backupOperation.backupAllMembers(targetDirPath, baselineDirPath);
+    assertThat(backupStatus.getBackedUpDiskStores()).hasSize(1);
+    assertThat(backupStatus.getBackedUpDiskStores().values().iterator().next().iterator().next()
+        .getFailedReason())
+            .isEqualTo(BackupFailedReason.NO_SPACE_LEFT);
+
+    when(finishBackupStep.send())
+        .thenReturn(generateBackupResult(BackupFailedReason.OTHER_DISK_REASON));
+    backupStatus = backupOperation.backupAllMembers(targetDirPath, baselineDirPath);
+    assertThat(backupStatus.getBackedUpDiskStores()).hasSize(1);
+    assertThat(backupStatus.getBackedUpDiskStores().values().iterator().next().iterator().next()
+        .getFailedReason())
+            .isEqualTo(BackupFailedReason.OTHER_DISK_REASON);
+  }
+
+  @Test
+  public void testBackupOfflineBecomeOnline() {
+    PersistentID offlineMember = new PersistentMemberPattern(null, "test", 0);
+    Set<PersistentID> offlineSet = new HashSet<>();
+    offlineSet.add(offlineMember);
+
+    Map<DistributedMember, Set<DiskStoreBackupResult>> result =
+        new HashMap<>();
+    HashSet<DiskStoreBackupResult> persistentIds = new HashSet<>();
+    persistentIds.add(new DiskStoreBackupResult(offlineMember));
+    result.put(mock(DistributedMember.class), persistentIds);
+
+    when(missingPersistentMembersProvider.getMissingPersistentMembers(dm)).thenReturn(offlineSet);
+    PrepareBackupStep prepareBackupStep = mock(PrepareBackupStep.class);
+    when(prepareBackupFactory.createPrepareBackupStep(any(), any(), any(), any(), any(), any()))
+        .thenReturn(prepareBackupStep);
+    when(prepareBackupStep.send()).thenReturn(result);
+    FinishBackupStep finishBackupStep = mock(FinishBackupStep.class);
+    when(finishBackupFactory.createFinishBackupStep(any(), any(), any(), any(), any()))
+        .thenReturn(finishBackupStep);
+    when(finishBackupStep.send())
+        .thenReturn(new HashMap<>());
+    BackupStatus backupStatus = backupOperation.backupAllMembers(targetDirPath, baselineDirPath);
+    assertThat(backupStatus.getOfflineDiskStores()).hasSize(0);
+    assertThat(backupStatus.getBackedUpDiskStores()).hasSize(1);
+  }
+
+  @Test
   public void flushPrepareFinishOrdering() {
     backupOperation.backupAllMembers(targetDirPath, baselineDirPath);
 
@@ -123,5 +193,16 @@ public class BackupOperationTest {
 
     verifyNoMoreInteractions(flushToDiskFactory, prepareBackupFactory, abortBackupFactory,
         finishBackupFactory);
+  }
+
+  private Map<DistributedMember, Set<DiskStoreBackupResult>> generateBackupResult(
+      BackupFailedReason failedReason) {
+    Map<DistributedMember, Set<DiskStoreBackupResult>> result =
+        new HashMap<>();
+    HashSet<DiskStoreBackupResult> persistentIds = new HashSet<>();
+    persistentIds
+        .add(new DiskStoreBackupResult(new PersistentMemberPattern(), failedReason));
+    result.put(mock(DistributedMember.class), persistentIds);
+    return result;
   }
 }

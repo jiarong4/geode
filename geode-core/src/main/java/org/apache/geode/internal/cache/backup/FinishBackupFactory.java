@@ -17,7 +17,6 @@ package org.apache.geode.internal.cache.backup;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
 import org.apache.geode.internal.cache.InternalCache;
@@ -39,7 +38,7 @@ class FinishBackupFactory {
   }
 
   BackupResponse createBackupResponse(InternalDistributedMember sender,
-      HashSet<PersistentID> persistentIds) {
+      HashSet<DiskStoreBackupResult> persistentIds) {
     return new BackupResponse(sender, persistentIds);
   }
 

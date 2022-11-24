@@ -17,6 +17,7 @@ package org.apache.geode.internal.cache.backup;
 import static org.apache.geode.distributed.internal.InternalConfigurationPersistenceService.CLUSTER_CONFIG_DISK_STORE_NAME;
 
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,7 +32,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.apache.geode.InternalGemFireError;
 import org.apache.geode.cache.DiskStore;
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.internal.cache.DiskStoreImpl;
 import org.apache.geode.internal.cache.InternalCache;
 import org.apache.geode.internal.cache.Oplog;
@@ -49,7 +49,7 @@ class BackupTask {
   private final CountDownLatch allowDestroys = new CountDownLatch(1);
   private final CountDownLatch locksAcquired = new CountDownLatch(1);
   private final CountDownLatch otherMembersReady = new CountDownLatch(1);
-  private final HashSet<PersistentID> diskStoresWithData = new HashSet<>();
+  private final HashSet<DiskStoreBackupResult> diskStoresWithData = new HashSet<>();
   private final BackupWriter backupWriter;
   private final Set<String> includeDiskStoresSet = new HashSet<>();
 
@@ -72,7 +72,7 @@ class BackupTask {
     }
   }
 
-  HashSet<PersistentID> getPreparedDiskStores() throws InterruptedException {
+  HashSet<DiskStoreBackupResult> getPreparedDiskStores() throws InterruptedException {
     locksAcquired.await();
     return diskStoresWithData;
   }
@@ -81,7 +81,7 @@ class BackupTask {
     otherMembersReady.countDown();
   }
 
-  HashSet<PersistentID> backup() throws InterruptedException, IOException {
+  HashSet<DiskStoreBackupResult> backup() throws InterruptedException, IOException {
     prepareForBackup();
     locksAcquired.countDown();
     try {
@@ -109,20 +109,21 @@ class BackupTask {
         logger.debug("Acquired lock for backup on disk store {}", store.getName());
       }
       if (storeImpl.hasPersistedData()) {
-        diskStoresWithData.add(storeImpl.getPersistentID());
+        diskStoresWithData.add(
+            new DiskStoreBackupResult(storeImpl.getPersistentID()));
         storeImpl.getStats().startBackup();
       }
     }
   }
 
-  private HashSet<PersistentID> doBackup() throws IOException {
+  private HashSet<DiskStoreBackupResult> doBackup() {
     if (isCancelled) {
       cleanup();
       return new HashSet<>();
     }
-
+    Collection<DiskStore> diskStores = null;
     try {
-      Collection<DiskStore> diskStores = cache.listDiskStoresIncludingRegionOwned();
+      diskStores = cache.listDiskStoresIncludingRegionOwned();
       temporaryFiles = TemporaryBackupFiles.create();
       fileCopier = new BackupFileCopier(cache,
           ClassPathLoader.getLatest().getJarDeploymentService(), temporaryFiles);
@@ -131,7 +132,8 @@ class BackupTask {
 
       allowDestroys.countDown();
 
-      HashSet<PersistentID> persistentIds = finishDiskStoreBackups(backupByDiskStores);
+      HashSet<DiskStoreBackupResult> diskStoreBackupResults =
+          finishDiskStoreBackups(backupByDiskStores);
 
       if (!backupByDiskStores.isEmpty()) {
         backupAdditionalFiles();
@@ -139,22 +141,50 @@ class BackupTask {
         backupDefinition.setRestoreScript(restoreScript);
         backupWriter.backupFiles(backupDefinition);
       }
-      return persistentIds;
+      return diskStoreBackupResults;
+    } catch (AccessDeniedException e) {
+      logger.warn("Backup failed with exception: ", e);
+      return failedDiskStoreBackups(diskStores, BackupFailedReason.NO_PERMISSION);
+    } catch (IOException e) {
+      logger.warn("Backup failed with exception: ", e);
+      if (e.getMessage().indexOf("not enough space") > -1) {
+        return failedDiskStoreBackups(diskStores, BackupFailedReason.NO_SPACE_LEFT);
+      }
+      return failedDiskStoreBackups(diskStores, BackupFailedReason.OTHER_DISK_REASON);
     } finally {
       cleanup();
     }
   }
 
-  private HashSet<PersistentID> finishDiskStoreBackups(
+  private HashSet<DiskStoreBackupResult> finishDiskStoreBackups(
       Map<DiskStoreImpl, DiskStoreBackup> backupByDiskStores) throws IOException {
-    HashSet<PersistentID> persistentIds = new HashSet<>();
+    HashSet<DiskStoreBackupResult> persistentIds = new HashSet<>();
     for (Map.Entry<DiskStoreImpl, DiskStoreBackup> entry : backupByDiskStores.entrySet()) {
       DiskStoreImpl diskStore = entry.getKey();
       completeBackup(diskStore, entry.getValue());
       diskStore.getStats().endBackup();
-      persistentIds.add(diskStore.getPersistentID());
+      persistentIds.add(new DiskStoreBackupResult(diskStore.getPersistentID()));
     }
     return persistentIds;
+  }
+
+  private HashSet<DiskStoreBackupResult> failedDiskStoreBackups(Collection<DiskStore> diskStores,
+      BackupFailedReason failedReason) {
+    HashSet<DiskStoreBackupResult> diskStoreBackupResults = new HashSet<>();
+    if (diskStores == null) {
+      return diskStoreBackupResults;
+    }
+    for (DiskStore store : diskStores) {
+      if (!isDiskStoreIncluded(store)) {
+        continue;
+      }
+      DiskStoreImpl diskStore = (DiskStoreImpl) store;
+      if (diskStore.hasPersistedData()) {
+        diskStoreBackupResults
+            .add(new DiskStoreBackupResult(diskStore.getPersistentID(), failedReason));
+      }
+    }
+    return diskStoreBackupResults;
   }
 
   private Map<DiskStoreImpl, DiskStoreBackup> startDiskStoreBackups(

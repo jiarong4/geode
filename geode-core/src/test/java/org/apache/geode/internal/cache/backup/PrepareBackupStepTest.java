@@ -36,7 +36,6 @@ import org.mockito.InOrder;
 import org.mockito.stubbing.Answer;
 
 import org.apache.geode.cache.CacheClosedException;
-import org.apache.geode.cache.persistence.PersistentID;
 import org.apache.geode.distributed.internal.DistributionManager;
 import org.apache.geode.distributed.internal.ReplyException;
 import org.apache.geode.distributed.internal.membership.InternalDistributedMember;
@@ -103,8 +102,8 @@ public class PrepareBackupStepTest {
 
   @Test
   public void sendReturnsResultsForRemoteRecipient() throws Exception {
-    HashSet<PersistentID> persistentIdsForMember1 = new HashSet<>();
-    persistentIdsForMember1.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForMember1 = new HashSet<>();
+    persistentIdsForMember1.add(mock(DiskStoreBackupResult.class));
     doAnswer(invokeAddToResults(new MemberWithPersistentIds(member1, persistentIdsForMember1)))
         .when(prepareBackupReplyProcessor).waitForReplies();
 
@@ -114,8 +113,8 @@ public class PrepareBackupStepTest {
 
   @Test
   public void sendReturnsResultsForLocalMember() throws Exception {
-    HashSet<PersistentID> persistentIdsForSender = new HashSet<>();
-    persistentIdsForSender.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForSender = new HashSet<>();
+    persistentIdsForSender.add(mock(DiskStoreBackupResult.class));
     when(prepareBackup.run()).thenReturn(persistentIdsForSender);
 
     assertThat(prepareBackupStep.send()).containsOnlyKeys(sender)
@@ -124,11 +123,11 @@ public class PrepareBackupStepTest {
 
   @Test
   public void sendReturnsResultsForAllMembers() throws Exception {
-    HashSet<PersistentID> persistentIdsForMember1 = new HashSet<>();
-    persistentIdsForMember1.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForMember1 = new HashSet<>();
+    persistentIdsForMember1.add(mock(DiskStoreBackupResult.class));
 
-    HashSet<PersistentID> persistentIdsForMember2 = new HashSet<>();
-    persistentIdsForMember2.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForMember2 = new HashSet<>();
+    persistentIdsForMember2.add(mock(DiskStoreBackupResult.class));
 
     MemberWithPersistentIds[] ids = new MemberWithPersistentIds[] {
         new MemberWithPersistentIds(member1, persistentIdsForMember1),
@@ -139,8 +138,8 @@ public class PrepareBackupStepTest {
     // prepareBackupStep.addToResults(ids[0].member, ids[0].persistentIds);
     // prepareBackupStep.addToResults(ids[1].member, ids[1].persistentIds);
 
-    HashSet<PersistentID> persistentIdsForSender = new HashSet<>();
-    persistentIdsForSender.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForSender = new HashSet<>();
+    persistentIdsForSender.add(mock(DiskStoreBackupResult.class));
     when(prepareBackup.run()).thenReturn(persistentIdsForSender);
 
     assertThat(prepareBackupStep.send()).containsOnlyKeys(member1, member2, sender)
@@ -166,8 +165,8 @@ public class PrepareBackupStepTest {
 
   @Test
   public void addToResultsShouldShowUpInGetResults() throws Exception {
-    HashSet<PersistentID> persistentIdsForMember1 = new HashSet<>();
-    persistentIdsForMember1.add(mock(PersistentID.class));
+    HashSet<DiskStoreBackupResult> persistentIdsForMember1 = new HashSet<>();
+    persistentIdsForMember1.add(mock(DiskStoreBackupResult.class));
     prepareBackupStep.addToResults(member1, persistentIdsForMember1);
     assertThat(prepareBackupStep.getResults()).containsOnlyKeys(member1)
         .containsValue(persistentIdsForMember1);
@@ -235,9 +234,10 @@ public class PrepareBackupStepTest {
 
   private static class MemberWithPersistentIds {
     InternalDistributedMember member;
-    HashSet<PersistentID> persistentIds;
+    HashSet<DiskStoreBackupResult> persistentIds;
 
-    MemberWithPersistentIds(InternalDistributedMember member, HashSet<PersistentID> persistentIds) {
+    MemberWithPersistentIds(InternalDistributedMember member,
+        HashSet<DiskStoreBackupResult> persistentIds) {
       this.member = member;
       this.persistentIds = persistentIds;
     }
