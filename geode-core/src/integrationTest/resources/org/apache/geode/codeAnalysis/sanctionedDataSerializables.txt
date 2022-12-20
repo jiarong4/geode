@@ -1249,8 +1249,12 @@ fromData,9
 toData,9
 
 org/apache/geode/internal/cache/backup/BackupResponse,2
-fromData,15
-toData,15
+fromData,102
+toData,139
+
+org/apache/geode/internal/cache/backup/DiskStoreBackupResult,2
+fromData,36
+toData,17
 
 org/apache/geode/internal/cache/backup/PrepareBackupRequest,2
 fromData,15
